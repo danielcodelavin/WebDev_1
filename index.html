@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UFO Battle Game</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #content {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">UFO Battle Game</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="home">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="preferences">Preferences</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="play">Play</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="records">Records</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="register">Register</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="login">Login</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div id="content" class="container">
+        <!-- Content will be dynamically loaded here -->
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="home.js"></script>
+    <script src="preferences.js"></script>
+    <script src="play.js"></script>
+    <script src="records.js"></script>
+    <script src="register.js"></script>
+    <script src="login.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const content = document.getElementById('content');
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const page = this.getAttribute('data-page');
+                    loadPage(page);
+                });
+            });
+
+            function loadPage(page) {
+                // Dynamically load content by calling the respective JS file function
+                if (typeof window[page + 'Page'] === 'function') {
+                    window[page + 'Page']();
+                }
+            }
+
+            // Load home content by default
+            loadPage('home');
+        });
+    </script>
+</body>
+</html>
