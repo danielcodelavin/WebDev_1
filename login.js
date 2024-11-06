@@ -1,22 +1,56 @@
 function loginPage() {
     const content = document.getElementById('content');
     content.innerHTML = `
-        <h2>Login</h2>
-        <form id="loginForm">
-            <div class="mb-3">
-                <label for="username" class="form-label">Username</label>
-                <input type="text" class="form-control" id="username" required>
+        <div class="container mt-5">
+            <div class="col-md-6 mx-auto">
+                <h2>Login</h2>
+                <div id="loginError" class="alert alert-danger d-none"></div>
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </form>
             </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Login</button>
-        </form>
+        </div>
     `;
 
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        alert('Login form submitted. Actual login logic will be implemented in the next task.');
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorDiv = document.getElementById('loginError');
+        
+        try {
+            const response = await fetch('http://wd.etsisi.upm.es:10000/users/login?username=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password) + '', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Basic ' + btoa(username + ':' + password)
+                }
+            });
+
+            if (response.ok) {
+                const token = response.headers.get('Authorization');
+                if (token) {
+                    localStorage.setItem('token', token);
+                    errorDiv.textContent = 'Login successful!';
+                    errorDiv.classList.remove('alert-danger');
+                    errorDiv.classList.add('alert-success');
+                    errorDiv.classList.remove('d-none');
+                }
+            } else {
+                throw new Error('Login failed');
+            }
+        } catch (error) {
+            errorDiv.textContent = 'Login error';
+            errorDiv.classList.add('alert-danger');
+            errorDiv.classList.remove('d-none');
+        }
     });
 }

@@ -15,98 +15,93 @@ function playPage() {
     const ctx = canvas.getContext('2d');
     let gameLoop = null;
     let gameStartTime = null;
-    
+
     // Load images
     const backgroundImage = new Image();
-    backgroundImage.src = 'space_pixel.jpeg'; 
+    backgroundImage.src = 'space_pixel.jpeg';
 
-    // Get preferences or use defaults
+    const ufoImage = new Image();
+    ufoImage.src = 'UFO_fresh_pixel.png';
+    
+    const ufoHitImage = new Image();
+    ufoHitImage.src = 'explosion.png';
+
+    const player = {
+        x: canvas.width / 2,
+        y: canvas.height - 100,
+        width: 80,
+        height: 80,
+        speed: 3,
+        image: new Image()
+    };
+    player.image.src = 'spaceship_pixel.png';
+
+    const missiles = [];
+    const missileProps = {
+        width: 30,
+        height: 40,
+        speed: 4,
+        image: new Image()
+    };
+    missileProps.image.src = 'misslejp_pixel.png';
+
     const numUfos = parseInt(localStorage.getItem('numUfos')) || 3;
     const gameTime = parseInt(localStorage.getItem('playTime')) || 60;
-    
-    // Game state
     let score = 0;
     let timeRemaining = gameTime;
     let gameActive = true;
     let imagesLoaded = 0;
-    const requiredImages = 4;
+    const requiredImages = 5;
 
-    const player = {
-        x: canvas.width / 2,
-        y: canvas.height - 100,  
-        width: 80,              
-        height: 80,             
-        speed: 3,
-        image: new Image()
-    };
-    player.image.src = 'spaceship_pixel.png'; 
-
-    const missiles = [];
-    const missileProps = {
-        width: 30,              
-        height: 40,             
-        speed: 4,
-        image: new Image()
-    };
-    missileProps.image.src = 'misslejp_pixel.png'; 
-
-    // UFO image
-    const ufoImage = new Image();
-    ufoImage.src = 'UFO_fresh_pixel.png'; 
-
-    // UFO class 
+    // UFO class
     class UFO {
         constructor() {
-            this.width = 100;    
-            this.height = 60;   
+            this.width = 100;
+            this.height = 60;
             this.x = Math.random() * (canvas.width - this.width);
             this.y = Math.random() * (canvas.height / 2) + 50;
             this.speed = 2;
             this.direction = 1;
-            this.active = true;
-            this.respawnTimer = 0;
+            this.hit = false;
+            this.hitTimer = 0;
+            this.image = ufoImage;
         }
 
         update() {
-            if (!this.active) {
-                if (this.respawnTimer > 0) {
-                    this.respawnTimer--;
-                } else {
-                    this.respawn();
-                }
-                return;
-            }
-
             this.x += this.speed * this.direction;
             
             if (this.x <= 0 || this.x + this.width >= canvas.width) {
                 this.direction *= -1;
             }
-        }
-
-        respawn() {
-            this.x = Math.random() * (canvas.width - this.width);
-            this.y = Math.random() * (canvas.height / 2) + 50;
-            this.active = true;
+            
+            // Reset to original image if hit effect has ended
+            if (this.hit && this.hitTimer <= 0) {
+                this.hit = false;
+                this.image = ufoImage;
+            } else if (this.hit) {
+                this.hitTimer--;
+            }
         }
 
         draw() {
-            if (!this.active) return;
-            ctx.drawImage(ufoImage, this.x, this.y, this.width, this.height);
+            ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+        }
+
+        activateHitEffect() {
+            this.hit = true;
+            this.hitTimer = 60;  // Display hit image for 1 second
+            this.image = ufoHitImage;
         }
     }
 
-    // Create UFOs
     const ufos = Array(numUfos).fill(null).map(() => new UFO());
 
-    // Input handling
     const keys = {
         left: false,
         right: false,
         space: false
     };
 
-    // Image loading handler
     function handleImageLoad() {
         imagesLoaded++;
         if (imagesLoaded === requiredImages) {
@@ -114,11 +109,11 @@ function playPage() {
         }
     }
 
-    // Add load event listeners to all images
     backgroundImage.onload = handleImageLoad;
     player.image.onload = handleImageLoad;
     missileProps.image.onload = handleImageLoad;
     ufoImage.onload = handleImageLoad;
+    ufoHitImage.onload = handleImageLoad;
 
     function handleKeyDown(e) {
         if (e.key === 'ArrowLeft') keys.left = true;
@@ -137,7 +132,6 @@ function playPage() {
     }
 
     function fireMissile() {
-        // Only fire if there are no active missiles
         if (missiles.length === 0) {
             missiles.push({
                 x: player.x + player.width / 2 - missileProps.width / 2,
@@ -156,19 +150,16 @@ function playPage() {
     function updateMissiles() {
         for (let i = missiles.length - 1; i >= 0; i--) {
             missiles[i].y -= missileProps.speed;
-            
+
             if (missiles[i].y + missiles[i].height < 0) {
                 missiles.splice(i, 1);
                 continue;
             }
 
             for (const ufo of ufos) {
-                if (!ufo.active) continue;
-                
                 if (checkCollision(missiles[i], ufo)) {
                     missiles.splice(i, 1);
-                    ufo.active = false;
-                    ufo.respawnTimer = 60;
+                    ufo.activateHitEffect();
                     score += 100;
                     document.getElementById('score').textContent = score;
                     break;
@@ -191,27 +182,24 @@ function playPage() {
         missiles.forEach(missile => {
             ctx.drawImage(missileProps.image, missile.x, missile.y, missile.width, missile.height);
         });
-        
+
         ufos.forEach(ufo => ufo.draw());
     }
 
     function endGame() {
         gameActive = false;
         clearInterval(gameLoop);
-        
         document.removeEventListener('keydown', handleKeyDown);
         document.removeEventListener('keyup', handleKeyUp);
-
-        // Save high score to local storage
+    
+        // Submit score to the server
+        submitScore(score);
+    
         const highScores = JSON.parse(localStorage.getItem('highScores') || '[]');
-        highScores.push({
-            score: score,
-            date: new Date().toISOString()
-        });
+        highScores.push({ score: score, date: new Date().toISOString() });
         highScores.sort((a, b) => b.score - a.score);
-        localStorage.setItem('highScores', JSON.stringify(highScores.slice(0, 10))); 
-
-        // Show game over screen
+        localStorage.setItem('highScores', JSON.stringify(highScores.slice(0, 10)));
+    
         ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
@@ -222,27 +210,53 @@ function playPage() {
         ctx.font = '24px Arial';
         ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 + 50);
         ctx.fillText('Press any key to return to menu', canvas.width / 2, canvas.height / 2 + 100);
-
-        // Add one-time listener for returning to menu
+    
         document.addEventListener('keydown', function returnToMenu() {
             document.removeEventListener('keydown', returnToMenu);
             document.querySelector('[data-page="home"]').click();
         }, { once: true });
     }
 
+    async function submitScore(score) {
+        const username = localStorage.getItem('username') || 'Anonymous';
+        try {
+            const response = await fetch('http://wd.etsisi.upm.es:10000/records', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, score })
+            });
+    
+            if (!response.ok) {
+                console.error('Error submitting score:', await response.text());
+            } else {
+                console.log('Score submitted successfully');
+            }
+        } catch (error) {
+            console.error('Error submitting score:', error);
+        }
+    }
+
+
+
+
     function updateTime() {
         const elapsed = Math.floor((Date.now() - gameStartTime) / 1000);
-        timeRemaining = Math.max(0, gameTime - elapsed);
-        document.getElementById('time').textContent = timeRemaining;
-        
+        timeRemaining = gameTime - elapsed;
+    
+        // Update displayed time and end the game if time reaches zero
         if (timeRemaining <= 0 && gameActive) {
+            timeRemaining = 0;  // Ensure it doesn't go negative
             endGame();
         }
+    
+        document.getElementById('time').textContent = timeRemaining;
     }
 
     function gameUpdate() {
         if (!gameActive) return;
-        
+
         updatePlayer();
         updateMissiles();
         ufos.forEach(ufo => ufo.update());
@@ -251,13 +265,13 @@ function playPage() {
     }
 
     function startGame() {
-    
         document.addEventListener('keydown', handleKeyDown);
         document.addEventListener('keyup', handleKeyUp);
         
-       
-        gameStartTime = Date.now();
-        document.getElementById('time').textContent = timeRemaining;
+        gameStartTime = Date.now(); // Initialize game start time
+        timeRemaining = gameTime;   // Reset time remaining
+        document.getElementById('time').textContent = timeRemaining; // Set initial time display
+    
         gameLoop = setInterval(gameUpdate, 1000 / 60); 
     }
 }
