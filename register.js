@@ -21,6 +21,6 @@ function registerPage() {
 
     document.getElementById('registerForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        alert('Registration form submitted. Actual registration will be implemented in the next task.');
+        alert('Registration form submitted!');
     });
 }
