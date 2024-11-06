@@ -6,13 +6,24 @@
     <title>UFO Battle Game</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        /* Dark Forest Green Top Bar */
+        
+        .navbar {
+            background-color: #1B3D3D; /* Dark forest green */
+        }
+        .navbar-brand, .nav-link {
+            color: #F0F0F0 !important; /* Light text for contrast */
+        }
+        .nav-link:hover {
+            color: #A8E6CF !important; /* Soft green for hover effect */
+        }
         #content {
             margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">UFO Battle Game</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">

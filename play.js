@@ -59,8 +59,8 @@ function playPage() {
             this.width = 100;
             this.height = 60;
             this.x = Math.random() * (canvas.width - this.width);
-            this.y = Math.random() * (canvas.height / 2) + 50;
-            this.speed = 2;
+            this.y = canvas.height * 0.2 + Math.random() * (canvas.height * 0.25);
+            this.speed = 2 + (Math.random() * 3);
             this.direction = 1;
             this.hit = false;
             this.hitTimer = 0;
@@ -74,7 +74,6 @@ function playPage() {
                 this.direction *= -1;
             }
             
-            // Reset to original image if hit effect has ended
             if (this.hit && this.hitTimer <= 0) {
                 this.hit = false;
                 this.image = ufoImage;
@@ -88,9 +87,11 @@ function playPage() {
         }
 
         activateHitEffect() {
-            this.hit = true;
-            this.hitTimer = 60;  // Display hit image for 1 second
-            this.image = ufoHitImage;
+            if (!this.hit) {
+                this.hit = true;
+                this.hitTimer = 60;
+                this.image = ufoHitImage;
+            }
         }
     }
 
@@ -153,11 +154,13 @@ function playPage() {
 
             if (missiles[i].y + missiles[i].height < 0) {
                 missiles.splice(i, 1);
+                score = Math.max(0, score - 25);
+                document.getElementById('score').textContent = score;
                 continue;
             }
 
             for (const ufo of ufos) {
-                if (checkCollision(missiles[i], ufo)) {
+                if (checkCollision(missiles[i], ufo) && !ufo.hit) {
                     missiles.splice(i, 1);
                     ufo.activateHitEffect();
                     score += 100;
@@ -191,15 +194,12 @@ function playPage() {
         clearInterval(gameLoop);
         document.removeEventListener('keydown', handleKeyDown);
         document.removeEventListener('keyup', handleKeyUp);
-    
-        // Submit score to the server
-        submitScore(score);
-    
-        const highScores = JSON.parse(localStorage.getItem('highScores') || '[]');
-        highScores.push({ score: score, date: new Date().toISOString() });
-        highScores.sort((a, b) => b.score - a.score);
-        localStorage.setItem('highScores', JSON.stringify(highScores.slice(0, 10)));
-    
+        
+        const selectedTime = gameTime / 60; 
+        score = Math.floor(score / selectedTime);
+        score -= (numUfos - 1) * 50;
+        score = Math.max(0, score); 
+
         ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
@@ -217,37 +217,12 @@ function playPage() {
         }, { once: true });
     }
 
-    async function submitScore(score) {
-        const username = localStorage.getItem('username') || 'Anonymous';
-        try {
-            const response = await fetch('http://wd.etsisi.upm.es:10000/records', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, score })
-            });
-    
-            if (!response.ok) {
-                console.error('Error submitting score:', await response.text());
-            } else {
-                console.log('Score submitted successfully');
-            }
-        } catch (error) {
-            console.error('Error submitting score:', error);
-        }
-    }
-
-
-
-
     function updateTime() {
         const elapsed = Math.floor((Date.now() - gameStartTime) / 1000);
         timeRemaining = gameTime - elapsed;
     
-        // Update displayed time and end the game if time reaches zero
         if (timeRemaining <= 0 && gameActive) {
-            timeRemaining = 0;  // Ensure it doesn't go negative
+            timeRemaining = 0;
             endGame();
         }
     
@@ -268,9 +243,9 @@ function playPage() {
         document.addEventListener('keydown', handleKeyDown);
         document.addEventListener('keyup', handleKeyUp);
         
-        gameStartTime = Date.now(); // Initialize game start time
-        timeRemaining = gameTime;   // Reset time remaining
-        document.getElementById('time').textContent = timeRemaining; // Set initial time display
+        gameStartTime = Date.now();
+        timeRemaining = gameTime;
+        document.getElementById('time').textContent = timeRemaining;
     
         gameLoop = setInterval(gameUpdate, 1000 / 60); 
     }

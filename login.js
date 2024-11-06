@@ -22,35 +22,40 @@ function loginPage() {
 
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        
+
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
         const errorDiv = document.getElementById('loginError');
-        
+
         try {
-            const response = await fetch('http://wd.etsisi.upm.es:10000/users/login?username=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password) + '', {
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Basic ' + btoa(username + ':' + password)
-                }
+            // Sending username and password as query parameters
+            const response = await fetch(`http://wd.etsisi.upm.es:10000/users/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+                method: 'GET'
             });
 
             if (response.ok) {
+                // Extract the token from the Authorization header
                 const token = response.headers.get('Authorization');
                 if (token) {
-                    localStorage.setItem('token', token);
+                    localStorage.setItem('token', token); // Save token for later use
                     errorDiv.textContent = 'Login successful!';
                     errorDiv.classList.remove('alert-danger');
                     errorDiv.classList.add('alert-success');
                     errorDiv.classList.remove('d-none');
+                } else {
+                    throw new Error('Token not found in response headers');
                 }
             } else {
-                throw new Error('Login failed');
+                const errorMessage = await response.text();
+                errorDiv.textContent = `Login failed: ${errorMessage}`;
+                errorDiv.classList.add('alert-danger');
+                errorDiv.classList.remove('d-none');
             }
         } catch (error) {
-            errorDiv.textContent = 'Login error';
+            errorDiv.textContent = 'Login error: ' + error.message;
             errorDiv.classList.add('alert-danger');
             errorDiv.classList.remove('d-none');
+            console.error('Login error:', error);
         }
     });
 }
